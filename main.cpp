@@ -85,18 +85,6 @@ public:
     return *this;
   }
 
-  void Close()
-  {
-    if (mAddress != nullptr)
-    {
-      if (munmap(mAddress, FILESIZE) == -1)
-      {
-          auto errorText = "Failed to unmap log file: " + std::string(strerror(errno));
-          throw runtime_error(errorText);
-      }
-    }
-  }
-
   Buffer& operator<< (const std::string& string) noexcept
   {
     if (mAddress != nullptr)
@@ -117,6 +105,7 @@ public:
     }
     return *this;
   }
+
   template <typename T>
   void Serialise(const T& message)
   {
@@ -124,6 +113,18 @@ public:
     *this << message.GetMessageType();
     message.Serialise(*this);
     // TODO unlock
+  }
+
+  void Close()
+  {
+    if (mAddress != nullptr)
+    {
+      if (munmap(mAddress, FILESIZE) == -1)
+      {
+          auto errorText = "Failed to unmap log file: " + std::string(strerror(errno));
+          throw runtime_error(errorText);
+      }
+    }
   }
 
 };
