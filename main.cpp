@@ -1,133 +1,9 @@
 #include <iostream>
-#include <string>
-#include <string.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdexcept>
+#include <thread>
+
+#include "filebuffer.h"
 
 using namespace std;
-
-class Buffer final
-{
-private:
-  static constexpr size_t FILESIZE = 1024 * 1024;
-  char* mAddress = nullptr;
-
-  void CloseNoThrow() noexcept
-  {
-    try
-    {
-      Close();
-    }
-    catch (...)
-    {
-    }
-  }
-
-public:
-  Buffer()
-  {
-    int fd = open("/dev/shm/fastlog", O_CREAT | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR );
-    if (fd == -1)
-    {
-        auto errorText = "Failed to open log file for writing: " + std::string(strerror(errno));
-        throw runtime_error(errorText);
-    }
-
-    if ((mAddress = (char*)mmap(nullptr, FILESIZE, PROT_WRITE, MAP_SHARED, fd, 0)) == MAP_FAILED)
-    {
-        auto errorText = "Failed to memory map log file: " + std::string(strerror(errno));
-        throw runtime_error(errorText);
-    }
-
-    if (ftruncate(fd, FILESIZE) == -1)
-    {
-        auto errorText = "Failed to truncate log file: " + std::string(strerror(errno));
-        throw runtime_error(errorText);
-    }
-
-    if (close(fd) == -1)
-    {
-        auto errorText = "Failed to close log file: " + std::string(strerror(errno));
-        throw runtime_error(errorText);
-    }
-
-    // rely on all unwritten bytes being zero
-    bzero(mAddress, FILESIZE);
-  }
-
-  Buffer(const Buffer&) = delete; // can't copy a buffer (only one instance owns the mapped file)
-
-  Buffer(Buffer&& buffer) noexcept // can move a buffer
-  {
-    buffer.mAddress = mAddress;
-    mAddress = nullptr;
-  }
-
-  ~Buffer() noexcept
-  {
-    CloseNoThrow();
-    mAddress = nullptr;
-  }
-
-  Buffer& operator= (const Buffer&) = delete; // can't assign from another buffer
-
-  Buffer& operator= (Buffer&& buffer) noexcept
-  {
-    if (this != &buffer)
-    {
-      CloseNoThrow();
-      mAddress = buffer.mAddress;
-      buffer.mAddress = nullptr;
-    }
-    return *this;
-  }
-
-  Buffer& operator<< (const std::string& string) noexcept
-  {
-    if (mAddress != nullptr)
-    {
-      memcpy(mAddress, string.data(), string.size());
-      mAddress += string.size() + 1;
-    }
-    return *this;
-  }
-
-  template <typename T>
-  Buffer& operator<< (const T& number) noexcept
-  {
-    if (mAddress != nullptr)
-    {
-      memcpy(mAddress, &number, sizeof(T));
-      mAddress += sizeof(T);
-    }
-    return *this;
-  }
-
-  template <typename T>
-  void Serialise(const T& message)
-  {
-    // TODO lock
-    *this << message.GetMessageType();
-    message.Serialise(*this);
-    // TODO unlock
-  }
-
-  void Close()
-  {
-    if (mAddress != nullptr)
-    {
-      if (munmap(mAddress, FILESIZE) == -1)
-      {
-          auto errorText = "Failed to unmap log file: " + std::string(strerror(errno));
-          throw runtime_error(errorText);
-      }
-    }
-  }
-
-};
 
 class Message
 {
@@ -141,7 +17,7 @@ public:
     return 1;
   }
 
-  void Serialise(Buffer& buffer) const
+  void Serialise(FileBuffer& buffer) const
   {
     buffer << mTraderName;
     buffer << mTraderIndex;
@@ -149,22 +25,26 @@ public:
   }
 };
 
-int main()
+void SendMessages()
 {
-  Buffer buffer;
-
-  // TODO: use buffer from two different threads
-
+  FileBuffer buffer;
   Message message;
   message.mTraderName = "CarlCook";
   message.mTraderIndex = 1;
   message.mFooFactor = 12.57;
-
   buffer.Serialise(message);
+}
+
+int main()
+{
+  std::thread worker1(SendMessages);
+  std::thread worker2(SendMessages);
+  worker1.join();
+  worker2.join();
 
 
   // write sample program to read (to verify)
 
-  // journalling?
+  // journalling (just do a mumap and create new buffer)
 }
 
