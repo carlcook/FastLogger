@@ -10,6 +10,7 @@
 #include <sstream>
 
 #include "utils.h"
+#include "messages.h"
 
 struct FileBuffer::Impl final
 {
@@ -75,7 +76,7 @@ FileBuffer& FileBuffer::operator= (FileBuffer&& buffer) noexcept
   return *this;
 }
 
-// TODO alignment?
+// TODO alignment
 FileBuffer& FileBuffer::operator<< (const std::string& string) noexcept
 {
   if (mImpl)
@@ -121,6 +122,7 @@ void FileBuffer::CloseNoThrow() noexcept
 }
 
 // supported serialisation types (plus std::string)
+template FileBuffer& FileBuffer::operator<<(MessageType const&);
 template FileBuffer& FileBuffer::operator<<(bool const&);
 template FileBuffer& FileBuffer::operator<<(int const&);
 template FileBuffer& FileBuffer::operator<<(unsigned int const&);

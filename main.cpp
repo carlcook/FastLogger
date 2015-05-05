@@ -6,27 +6,51 @@
 
 using namespace std;
 
-void SendMessages()
+void SendMessagesFromWorker1()
 {
-  // TODO implement multiple message types
   FileBuffer buffer;
-  Message message;
-  message.mTraderName = "CarlCook";
-  message.mTraderIndex = 1;
-  message.mFooFactor = 12.57;
-  buffer.Serialise(message);
+
+  for (auto i = 0; i < 10 * 1000; ++i)
+  {
+    TraderKeyLoginMessage traderKeyLoginMessage;
+    traderKeyLoginMessage.SetTraderName("Trader1");
+    traderKeyLoginMessage.SetTraderIndex(1);
+    traderKeyLoginMessage.SetFooFactor(12.57);
+    buffer.Serialise(traderKeyLoginMessage);
+
+    OrderInsertMessage orderInsertMessage;
+    orderInsertMessage.SetVolume(100);
+    orderInsertMessage.SetPrice(29.4);
+    buffer.Serialise(orderInsertMessage);
+  }
+}
+
+void SendMessagesFromWorker2()
+{
+  FileBuffer buffer;
+
+  for (auto i = 0; i < 25 * 1000; ++i) // will just be under the 1Mb buffer size
+  {
+    TraderKeyLoginMessage traderKeyLoginMessage;
+    traderKeyLoginMessage.SetTraderName("Trader2");
+    traderKeyLoginMessage.SetTraderIndex(2);
+    traderKeyLoginMessage.SetFooFactor(8.27);
+    buffer.Serialise(traderKeyLoginMessage);
+
+    OrderInsertMessage orderInsertMessage;
+    orderInsertMessage.SetVolume(31);
+    orderInsertMessage.SetPrice(4.51);
+    buffer.Serialise(orderInsertMessage);
+  }
 }
 
 int main()
 {
-  std::thread worker1(SendMessages);
-  std::thread worker2(SendMessages);
+  std::thread worker1(SendMessagesFromWorker1);
+  std::thread worker2(SendMessagesFromWorker2);
   worker1.join();
   worker2.join();
 
-
   // TODO write sample program to read (to verify)
-
-  // TODO journalling (just do a mumap and create new buffer)
 }
 

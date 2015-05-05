@@ -37,6 +37,7 @@ public:
 template <typename T>
 void FileBuffer::Serialise(const T& message)
 {
+  // TODO journalling (just do a mumap and create new buffer), otherwise we will segfault
   *this << message.GetMessageType();
   message.Serialise(*this);
 }
