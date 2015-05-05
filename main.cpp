@@ -1,32 +1,14 @@
-#include <iostream>
+#include <string>
 #include <thread>
 
 #include "filebuffer.h"
+#include "messages.h"
 
 using namespace std;
 
-class Message
-{
-public:
-  std::string mTraderName;
-  int mTraderIndex;
-  float mFooFactor;
-
-  int GetMessageType() const
-  {
-    return 1;
-  }
-
-  void Serialise(FileBuffer& buffer) const
-  {
-    buffer << mTraderName;
-    buffer << mTraderIndex;
-    buffer << mFooFactor;
-  }
-};
-
 void SendMessages()
 {
+  // TODO implement multiple message types
   FileBuffer buffer;
   Message message;
   message.mTraderName = "CarlCook";
@@ -43,8 +25,8 @@ int main()
   worker2.join();
 
 
-  // write sample program to read (to verify)
+  // TODO write sample program to read (to verify)
 
-  // journalling (just do a mumap and create new buffer)
+  // TODO journalling (just do a mumap and create new buffer)
 }
 

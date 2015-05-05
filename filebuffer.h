@@ -2,32 +2,35 @@
 #define FILEBUFFER_H
 
 #include <string>
+#include <memory>
 
 class FileBuffer final
 {
 private:
-
+  /// data members
   struct Impl;
-  Impl* mImpl;
+  std::unique_ptr<Impl> mImpl;
 
+  /// useful helper methods
   void CloseNoThrow() noexcept;
 
 public:
-  FileBuffer();
-  FileBuffer(const FileBuffer&) = delete; // can't copy a buffer (only one instance owns the mapped file)
-  FileBuffer(FileBuffer&& buffer) noexcept; // can move a buffer
+  /// constructors
+  FileBuffer(); // once constructed, file has been mapped
+  FileBuffer(const FileBuffer&) = delete; // copying a buffer makes no sense
+  FileBuffer(FileBuffer&& buffer) noexcept; // transferring ownership is allowed
   ~FileBuffer() noexcept;
-  FileBuffer& operator= (const FileBuffer&) = delete; // can't assign from another buffer
-  FileBuffer& operator= (FileBuffer&& buffer) noexcept; // can move assign
+  FileBuffer& operator= (const FileBuffer&) = delete; // can't copy by way of assignment (copies are not allowed)
+  FileBuffer& operator= (FileBuffer&& buffer) noexcept; // can move by way of assignment
 
+  /// serialisation routines that messages will call within their serialisation routine
   FileBuffer& operator<< (const std::string& string) noexcept;
+  template <typename T> FileBuffer& operator<< (const T& number) noexcept;
 
-  template <typename T>
-  FileBuffer& operator<< (const T& number) noexcept;
+  /// call this to serialise an entire message (sort of a template method pattern)
+  template <typename T> void Serialise(const T& message);
 
-  template <typename T>
-  void Serialise(const T& message);
-
+  /// ask the buffer to flush to disk and clean up
   void Close();
 };
 
