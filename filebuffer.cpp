@@ -76,23 +76,24 @@ FileBuffer& FileBuffer::operator= (FileBuffer&& buffer) noexcept
   return *this;
 }
 
-// TODO alignment
-FileBuffer& FileBuffer::operator<< (const std::string& string) noexcept
+FileBuffer& FileBuffer::operator<< (const std::string& value) noexcept
 {
   if (mImpl)
   {
-    memcpy(mImpl->mAddress, string.data(), string.size());
-    mImpl->mAddress += string.size() + 1;
+    static constexpr size_t ALIGNMENT = 4; // bytes
+    memcpy(mImpl->mAddress, value.data(), value.size());
+    const auto alignedSize = (value.size() + 1 /*nullchar*/ + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1);
+    mImpl->mAddress += alignedSize;
   }
   return *this;
 }
 
 template <typename T>
-FileBuffer& FileBuffer::operator<< (const T& number) noexcept
+FileBuffer& FileBuffer::operator<< (const T& value) noexcept
 {
   if (mImpl)
   {
-    memcpy(mImpl->mAddress, &number, sizeof(T));
+    memcpy(mImpl->mAddress, &value, sizeof(T));
     mImpl->mAddress += sizeof(T);
   }
   return *this;
