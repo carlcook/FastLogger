@@ -11,7 +11,6 @@
 #include <sstream>
 #include <time.h>
 
-
 /// The Pimpl implementation for a file buffer
 struct FileBuffer::Impl final
 {
