@@ -4,7 +4,9 @@
 #include <string>
 #include <memory>
 
-class FileBuffer final
+#include <ostream>
+
+class FileBuffer final : private std::ostream
 {
 private:
   /// data members
