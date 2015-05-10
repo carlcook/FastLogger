@@ -1,4 +1,5 @@
 #include "filebuffer.h"
+#include "utils.h"
 
 #include <string.h>
 #include <sys/mman.h>
@@ -8,9 +9,10 @@
 #include <stdexcept>
 #include <atomic>
 #include <sstream>
+#include <time.h>
 
-#include "utils.h"
 
+/// The Pimpl implementation for a file buffer
 struct FileBuffer::Impl final
 {
   // one megabyte for now
@@ -21,6 +23,12 @@ struct FileBuffer::Impl final
 
   // the address of the memory mapped file
   char* mAddress = nullptr;
+
+  Impl(const Impl&) = delete;
+  Impl() = default;
+  Impl(Impl&&) noexcept = default;
+  Impl& operator=(const Impl&) = delete;
+  Impl& operator=(Impl&&) noexcept = default;
 };
 
 // static initialisation
@@ -75,27 +83,17 @@ FileBuffer& FileBuffer::operator= (FileBuffer&& buffer) noexcept
   return *this;
 }
 
-FileBuffer& FileBuffer::operator<< (const std::string& value) noexcept
+char*& FileBuffer::GetInternalBuffer()
 {
-  if (mImpl)
-  {
-    static constexpr size_t ALIGNMENT = 4; // bytes
-    memcpy(mImpl->mAddress, value.data(), value.size());
-    const auto alignedSize = (value.size() + 1 /*nullchar*/ + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1);
-    mImpl->mAddress += alignedSize;
-  }
-  return *this;
+  return mImpl->mAddress;
 }
 
-template <typename T>
-FileBuffer& FileBuffer::operator<< (const T& value) noexcept
+void FileBuffer::WriteTimestamp()
 {
-  if (mImpl)
-  {
-    memcpy(mImpl->mAddress, &value, sizeof(T));
-    mImpl->mAddress += sizeof(T);
-  }
-  return *this;
+  struct timespec now;
+  clock_gettime(CLOCK_MONOTONIC_COARSE, &now);
+  memcpy(mImpl->mAddress, &now, sizeof(now));
+  mImpl->mAddress += sizeof(now);
 }
 
 void FileBuffer::Close()
@@ -121,9 +119,5 @@ void FileBuffer::CloseNoThrow() noexcept
   }
 }
 
-// supported serialisation types (plus std::string)
-template FileBuffer& FileBuffer::operator<<(bool const&);
-template FileBuffer& FileBuffer::operator<<(int const&);
-template FileBuffer& FileBuffer::operator<<(unsigned int const&);
-template FileBuffer& FileBuffer::operator<<(float const&);
-template FileBuffer& FileBuffer::operator<<(double const&);
+
+
