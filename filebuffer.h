@@ -39,6 +39,8 @@ void FileBuffer::Serialise(const T& message)
 {
   // TODO journalling (just do a mumap and create new buffer), otherwise we will segfault
   // Maybe ask for serialised size, and if not enough space, flush out (or use hardcoded limit)
+
+  // TODO also write timestamp
   *this << message.GetMessageType();
   message.Serialise(*this);
 }
