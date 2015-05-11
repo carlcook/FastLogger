@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.11)
 
-project(FastLogger C CXX)
+project(FastLogger)
 
 file(GLOB MY_SRCS "lib/*.cpp" "lib/*.h")
 
